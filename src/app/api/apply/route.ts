@@ -91,12 +91,7 @@ async function generateAiReview(
 }`;
 
   try {
-    let response = await callGeminiModel(preferredModel, apiKey, promptText);
-
-    // 만약 gemini-3.8-flash 엔드포인트가 404(미지원 모델명)를 반환할 경우에만 호환 모델(gemini-2.5-flash)로 1회 폴백
-    if (response.status === 404 && preferredModel !== "gemini-2.5-flash") {
-      response = await callGeminiModel("gemini-2.5-flash", apiKey, promptText);
-    }
+    const response = await callGeminiModel(preferredModel, apiKey, promptText);
 
     if (!response.ok) {
       return {
@@ -216,6 +211,17 @@ export async function POST(request: Request) {
     // ② Airtable 저장용 필드 구성
     // 주의: '담당자 확정 평점'은 사람이 직접 입력하는 칸이므로 비워둡니다.
     // 주의: 'AI 평점'은 1~5 정수일 때만 넣으며, 0점이나 빈 값은 아예 생략하여 저장 실패를 방지합니다.
+    const nowKst = new Date().toLocaleString("ko-KR", {
+      timeZone: "Asia/Seoul",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+
     const fields: Record<string, string | number> = {
       팀명: teamName,
       구성원: members,
@@ -224,6 +230,7 @@ export async function POST(request: Request) {
       "기대 효과": expectedEffect,
       "응모자 전화번호": applicantPhone,
       "응모자 메일": applicantEmail,
+      접수일시: nowKst,
     };
 
     if (aiReview) {
